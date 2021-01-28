@@ -17,6 +17,13 @@
             "request": "launch",
             "program": "${workspaceFolder}/tests/pingTest.py",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Run configureSweepTest.py (Integrated Terminal)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/configureSweepTest.py",
+            "console": "integratedTerminal"
         }
     ]
 }
