@@ -1,12 +1,13 @@
 #!python3
 
 import serial
+from typing import Dict
 import numpy as np
 from serial import SerialException
 
 class NanoVNA():
-    def __init__(self, port:str, baudrate:int=115200, timeout=1.0):
-        self.vnaPort = serial.Serial(port=port, baudrate=baudrate, timeout=timeout)
+    def __init__(self, port:str, baudrate:int=115200, timeout:float=1.0, write_timeout:float=1.0):
+        self.vnaPort = serial.Serial(port=port, baudrate=baudrate, timeout=timeout, write_timeout=write_timeout)
         self.sweepPoints = None
         self.sweepStart = None
         self.sweepStop = None
@@ -14,13 +15,13 @@ class NanoVNA():
     def __del__(self):
         self.disconnect()
 
-    def connect(self):
+    def connect(self) -> None:
         self.vnaPort.open()
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         self.vnaPort.close()
 
-    def ping(self):
+    def ping(self) -> bool:
         self.vnaPort.reset_output_buffer()
         self.vnaPort.reset_input_buffer()
         self.vnaPort.write(bytes.fromhex('0d'))
@@ -34,7 +35,7 @@ class NanoVNA():
         else:
             return True
 
-    def configureSweep(self, sweepPoints:np.uint16, sweepStart:np.uint64, sweepStop:np.uint64):
+    def configureSweep(self, sweepPoints:np.uint16, sweepStart:np.uint64, sweepStop:np.uint64) -> None:
         self.sweepPoints = np.uint16(sweepPoints)
         self.sweepStart = np.uint64(sweepStart)
         self.sweepStop = np.uint64(sweepStop)
@@ -48,11 +49,14 @@ class NanoVNA():
         self.vnaPort.reset_input_buffer()
 
         # Set sweepPoints on VNA
-        command = bytes.fromhex('21 20') + bytearray(self.sweepPoints)
+        command = bytes.fromhex('21 20') + self.sweepPoints.tobytes()
         self.vnaPort.write(command)
         # Set sweepStart on VNA
-        command = bytes.fromhex('23 00') + bytearray(self.sweepStart)
+        command = bytes.fromhex('23 00') + self.sweepStart.tobytes()
         self.vnaPort.write(command)
         # Set sweepStop on VNA
-        command = bytes.fromhex('23 10') + bytearray(self.sweepStep)
+        command = bytes.fromhex('23 10') + self.sweepStep.tobytes()
         self.vnaPort.write(command)
+
+    def captureSweep() -> Dict[str,np.ndarray]:
+        pass
