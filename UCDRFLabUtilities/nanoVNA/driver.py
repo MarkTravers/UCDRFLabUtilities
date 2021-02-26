@@ -80,13 +80,13 @@ class NanoVNA():
         # Row5 - Re(rev1)
         # Row6 - Im(rev1)
         self.sweepData = np.zeros((7,self.sweepPoints), dtype=np.int32)
-        np.linspace(0, self.sweepPoints - 1, self.sweepPoints, out=self.sweepData[0,:])
+        self.sweepData[0,:] = np.linspace(0, self.sweepPoints - 1, self.sweepPoints)
         np.multiply(self.sweepData[0,:], self.sweepStep, out=self.sweepData[0,:])
         np.add(self.sweepData[0,:], self.sweepStart, out=self.sweepData[0,:])
 
         # Allocate S-parameter matrix
-        self.s11 = np.zeros(self.sweepPoints)
-        self.s21 = np.zeros(self.sweepPoints)
+        self.s11 = np.zeros(self.sweepPoints, dtype=np.complex128)
+        self.s21 = np.zeros(self.sweepPoints, dtype=np.complex128)
 
     def readSweepConfig(self) -> Tuple[np.uint16, np.uint64, np.uint64]:
         # Clear serial buffers
@@ -123,7 +123,7 @@ class NanoVNA():
 
         return (sweepPoints, sweepStart, sweepStep)
 
-    def readNextFreq(self, s11Calc:Callable[[np.ndarray, np.ndarray, np.uint16], None],
+    def readNextPoint(self, s11Calc:Callable[[np.ndarray, np.ndarray, np.uint16], None],
                             s21Calc:Callable[[np.ndarray, np.ndarray, np.uint16], None]) -> None:
         # Clear serial buffers
         self.vnaPort.reset_output_buffer()
@@ -145,17 +145,33 @@ class NanoVNA():
         # Row4 - Im(rev0)
         # Row5 - Re(rev1)
         # Row6 - Im(rev1)
-        freqIndex = np.uint16(int.from_bytes(pointData[0x18:0x1a], byteorder='little'))
-        self.sweepData[1, freqIndex] = np.int32(int.from_bytes(pointData[0x00:0x04], byteorder='little'))
-        self.sweepData[2, freqIndex] = np.int32(int.from_bytes(pointData[0x04:0x08], byteorder='little'))
-        self.sweepData[3, freqIndex] = np.int32(int.from_bytes(pointData[0x08:0x0c], byteorder='little'))
-        self.sweepData[4, freqIndex] = np.int32(int.from_bytes(pointData[0x0c:0x10], byteorder='little'))
-        self.sweepData[5, freqIndex] = np.int32(int.from_bytes(pointData[0x10:0x14], byteorder='little'))
-        self.sweepData[6, freqIndex] = np.int32(int.from_bytes(pointData[0x14:0x18], byteorder='little'))
+        freqIndex = np.uint16(int.from_bytes(pointData[0x18:0x1a], byteorder='little', signed=False))
+        self.sweepData[1, freqIndex] = np.int32(int.from_bytes(pointData[0x00:0x04], byteorder='little', signed=True))
+        self.sweepData[2, freqIndex] = np.int32(int.from_bytes(pointData[0x04:0x08], byteorder='little', signed=True))
+        self.sweepData[3, freqIndex] = np.int32(int.from_bytes(pointData[0x08:0x0c], byteorder='little', signed=True))
+        self.sweepData[4, freqIndex] = np.int32(int.from_bytes(pointData[0x0c:0x10], byteorder='little', signed=True))
+        self.sweepData[5, freqIndex] = np.int32(int.from_bytes(pointData[0x10:0x14], byteorder='little', signed=True))
+        self.sweepData[6, freqIndex] = np.int32(int.from_bytes(pointData[0x14:0x18], byteorder='little', signed=True))
 
         # Calculate S-parameters (possibly apply calibration)
         s11Calc(self.sweepData, self.s11, freqIndex)
         s21Calc(self.sweepData, self.s21, freqIndex)
 
-    def captureSingleSweep(self) -> Dict[str,np.ndarray]:
-        pass
+    def captureSweep(self, s11Calc:Callable[[np.ndarray, np.ndarray, np.uint16], None],
+                            s21Calc:Callable[[np.ndarray, np.ndarray, np.uint16], None]) -> Dict[str,np.ndarray]:
+        # Clear serial buffers
+        self.vnaPort.reset_output_buffer()
+        self.vnaPort.reset_input_buffer()
+
+        # Flush VNA FIFO
+        # 20 - WRITEFIFO
+        # 30 - valuesFIFO (sweep data FIFO)
+        # 00 - Random data (writing anything to the FIFO flushes the FIFO)
+        command = bytes.fromhex('20 30 00')
+        self.vnaPort.write(command)
+
+        # Get all data points for one sweep from VNA
+        for i in range(self.sweepPoints):
+            self.readNextPoint(s11Calc, s21Calc)
+
+        return {'freqs':self.sweepData[0,:], 'S11':self.s11, 'S21':self.s21}
