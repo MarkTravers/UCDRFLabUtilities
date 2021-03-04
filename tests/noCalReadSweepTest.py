@@ -4,8 +4,10 @@ import numpy as np
 from UCDRFLabUtilities.nanoVNA.driver import NanoVNA
 from UCDRFLabUtilities.signalutilities.sparameters import NoCalibration
 
+import matplotlib.pyplot as plt
+
 if __name__=='__main__':
-    vna = NanoVNA('COM3')
+    vna = NanoVNA('COM5')
     
     # Sweep Parameters
     sweepPoints = 100
@@ -18,5 +20,9 @@ if __name__=='__main__':
 
     # Read sweep from VNA
     sweepData = vna.captureSweep(NoCalibration.calcS11, NoCalibration.calcS21)
+
+    plt.plot(sweepData['S11'].real)
+    # plt.plot(sweepData['freqs'], sweepData['S11'], sweepData['freqs'], sweepData['S21'])
+    plt.show()
     
     print('done.')

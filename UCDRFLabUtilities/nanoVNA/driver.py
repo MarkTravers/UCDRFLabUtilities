@@ -79,7 +79,7 @@ class NanoVNA():
         # Row4 - Im(rev0)
         # Row5 - Re(rev1)
         # Row6 - Im(rev1)
-        self.sweepData = np.zeros((7,self.sweepPoints), dtype=np.int32)
+        self.sweepData = np.zeros((7,self.sweepPoints), dtype=np.uint64)
         self.sweepData[0,:] = np.linspace(0, self.sweepPoints - 1, self.sweepPoints)
         np.multiply(self.sweepData[0,:], self.sweepStep, out=self.sweepData[0,:])
         np.add(self.sweepData[0,:], self.sweepStart, out=self.sweepData[0,:])
@@ -154,6 +154,7 @@ class NanoVNA():
         self.sweepData[6, freqIndex] = np.int32(int.from_bytes(pointData[0x14:0x18], byteorder='little', signed=True))
 
         # Calculate S-parameters (possibly apply calibration)
+        print(freqIndex)
         s11Calc(self.sweepData, self.s11, freqIndex)
         s21Calc(self.sweepData, self.s21, freqIndex)
 

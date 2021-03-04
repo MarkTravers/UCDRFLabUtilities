@@ -24,6 +24,13 @@
             "request": "launch",
             "program": "${workspaceFolder}/tests/configureSweepTest.py",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Run noCalReadSweepTest.py (Integrated Terminal)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/noCalReadSweepTest.py",
+            "console": "integratedTerminal"
         }
     ]
 }
